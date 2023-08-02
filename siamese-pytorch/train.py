@@ -8,9 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from siamese import SiameseNetwork
-from dataset import Dataset
-
+from siamese import SiameseNetwork, SiameseDataset
 import utils
 
 # baseado em https://github.com/sohaib023/siamese-pytorch
@@ -23,6 +21,8 @@ if __name__ == "__main__":
     final_path = os.path.join(
         args['output_path'], args['dataset_name'], args['model_name'], training_id)
     os.makedirs(final_path, exist_ok=True)
+    with open(os.path.join(final_path, 'config.yaml'), 'w') as file:
+        yaml.dump(args, file)
 
     # Set device to CUDA if a CUDA device is available, else CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -32,10 +32,8 @@ if __name__ == "__main__":
     files_train, labels_train, files_test, labels_test = utils.trainTestSplit(
         file_paths, labels)
 
-    train_dataset = Dataset(files_train, labels_train, args['final_shape'],
-                            args['grayscale'], shuffle_pairs=True, augment=False)
-    val_dataset = Dataset(files_test, labels_test, args['final_shape'],
-                          args['grayscale'], shuffle_pairs=False, augment=False)
+    train_dataset = SiameseDataset(files_train, labels_train, **args['train_dataset'])
+    val_dataset = SiameseDataset(files_test, labels_test, **args['test_dataset'])
 
     train_dataloader = DataLoader(train_dataset, batch_size=8, drop_last=True)
     val_dataloader = DataLoader(val_dataset, batch_size=8)
@@ -78,7 +76,7 @@ if __name__ == "__main__":
         writer.add_scalar('train_loss', train_loss, epoch)
         writer.add_scalar('train_acc', accuracy, epoch)
 
-        print("\tTraining: Loss={:.2f}\t Accuracy={:.2f}\t".format(
+        print("\tTraining: Loss={:.2f}\t Accuracy={:.2f}%\t".format(
             train_loss, accuracy))
         # Training Loop End
 
@@ -104,11 +102,11 @@ if __name__ == "__main__":
         writer.add_scalar('val_acc', correct / total, epoch)
 
         accuracy = 100 * correct / total
-        print("\tValidation: Loss={:.2f}\t Accuracy={:.2f}\t".format(val_loss, accuracy))
+        print("\tValidation: Loss={:.2f}\t Accuracy={:.2f}%\t".format(val_loss, accuracy))
         # Evaluation Loop End
 
         # Update "best.pth" model if val_loss in current epoch is lower than the best validation loss
-        if val_loss < best_val:
+        if args['save_best'] and val_loss < best_val:
             best_val = val_loss
             torch.save(
                 {
@@ -121,7 +119,7 @@ if __name__ == "__main__":
             )
 
         # Save model based on the frequency defined by "args['save_after']"
-        if (epoch + 1) % args['save_after'] == 0:
+        if args['save_after'] != 0 and (epoch + 1) % args['save_after'] == 0:
             torch.save(
                 {
                     "epoch": epoch + 1,

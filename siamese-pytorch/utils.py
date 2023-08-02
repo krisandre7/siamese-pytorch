@@ -2,6 +2,7 @@ import numpy as np
 import glob
 import os
 import torch
+from torch import Tensor
 from sklearn.model_selection import StratifiedShuffleSplit
 
 def getDataset(dataset_dir: str):
@@ -13,7 +14,7 @@ def getDataset(dataset_dir: str):
     
     return file_paths, labels
 
-def trainTestSplit(file_paths, labels):
+def trainTestSplit(file_paths: np.array, labels: np.array):
     splitter = StratifiedShuffleSplit(n_splits=1, train_size=0.6, test_size=0.4, random_state=42)
     train_indices, test_indices = next(splitter.split(file_paths, labels))
     
@@ -28,7 +29,7 @@ def trainTestSplit(file_paths, labels):
     labels_test = labels_test[sort_index]
     files_test = files_test[sort_index]
 
-    labels_train = torch.from_numpy(labels_train)
-    labels_test = torch.from_numpy(labels_test)
+    labels_train: Tensor = torch.from_numpy(labels_train)
+    labels_test: Tensor = torch.from_numpy(labels_test)
     
     return files_train, labels_train, files_test, labels_test

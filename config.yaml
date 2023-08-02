@@ -1,9 +1,25 @@
-# Dataset
 dataset_dir: './'
 dataset_name: 'dataset'
-final_shape: [320, 280]
-grayscale: False
 output_path: './reports'
+
+# Datasets
+train_dataset:
+  shuffle_pairs: True
+  augment: False
+  final_shape: [320, 280]
+  grayscale: False
+test_dataset:
+  shuffle_pairs: False
+  augment: False
+  final_shape: [320, 280]
+  grayscale: False
+
+# Dataloader
+train_dataloader:
+  batch_size: 8
+  drop_last: True
+test_dataloader:
+  batch_size: 8
 
 # Model
 model_name: 'siameseNet18'
@@ -12,4 +28,5 @@ backbone: 'resnet18'
 # Training
 learning_rate: 0.0001
 epochs: 500
-save_after: 25
+save_best: True
+save_after: 0

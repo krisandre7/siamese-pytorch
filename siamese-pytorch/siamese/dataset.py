@@ -7,12 +7,15 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 import torch
+from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 
-class Dataset(torch.utils.data.IterableDataset):
-    def __init__(self, image_paths, image_classes, img_shape, grayscale, shuffle_pairs, augment=False):
+
+class SiameseDataset(torch.utils.data.IterableDataset):
+    def __init__(self, image_paths: np.array, image_classes: Tensor, 
+                 shuffle_pairs: bool, augment: bool, final_shape: tuple, grayscale: bool):
         '''
         Create an iterable dataset from a directory containing sub-directories of 
         entities with their images contained inside each sub-directory.
@@ -33,22 +36,24 @@ class Dataset(torch.utils.data.IterableDataset):
         num_channels = 1 if grayscale else 3
         self.shuffle_pairs = shuffle_pairs
 
-        print(img_shape)
         if augment:
             # If images are to be augmented, add extra operations for it (first two).
             self.transform = transforms.Compose([
-                transforms.RandomAffine(degrees=20, translate=(0.2, 0.2), scale=(0.8, 1.2), shear=0.2),
+                transforms.RandomAffine(degrees=20, translate=(
+                    0.2, 0.2), scale=(0.8, 1.2), shear=0.2),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                transforms.Resize(img_shape, antialias=None)
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                     0.229, 0.224, 0.225]),
+                transforms.Resize(final_shape, antialias=None)
             ])
         else:
             # If no augmentation is needed then apply only the normalization and resizing operations.
             self.transform = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                transforms.Resize(img_shape, antialias=None)
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                     0.229, 0.224, 0.225]),
+                transforms.Resize(final_shape, antialias=None)
             ])
 
         self.create_pairs()
@@ -66,7 +71,8 @@ class Dataset(torch.utils.data.IterableDataset):
 
             if image_class not in self.class_indices:
                 self.class_indices[int(image_class.item())] = []
-            self.class_indices[int(image_class.item())].append(np.where(self.image_paths == image_path)[0])
+            self.class_indices[int(image_class.item())].append(
+                np.where(self.image_paths == image_path)[0])
 
         self.indices1 = np.arange(len(self.image_paths))
 
@@ -86,7 +92,8 @@ class Dataset(torch.utils.data.IterableDataset):
             if pos:
                 class2 = class1
             else:
-                class2 = np.random.choice(list(set(self.class_indices.keys()) - {class1}))
+                class2 = np.random.choice(
+                    list(set(self.class_indices.keys()) - {class1}))
             idx2 = np.random.choice(self.class_indices[int(class2.item())][0])
             self.indices2.append(idx2)
         self.indices2 = np.array(self.indices2)
@@ -108,7 +115,7 @@ class Dataset(torch.utils.data.IterableDataset):
             image1 = self.transform(image1).float()
             image2 = self.transform(image2).float()
 
-            yield (image1, image2), torch.FloatTensor([class1==class2]), (class1, class2)
-        
+            yield (image1, image2), torch.FloatTensor([class1 == class2]), (class1, class2)
+
     def __len__(self):
         return len(self.image_paths)
