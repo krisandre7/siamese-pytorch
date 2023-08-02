@@ -6,7 +6,6 @@ from torch import Tensor
 from sklearn.model_selection import StratifiedShuffleSplit
 
 def getDataset(dataset_dir: str):
-    # class_names = np.sort(np.array(next(os.walk(DATASET_DIR))[1], np.float32))
     file_paths = np.sort(glob.glob(dataset_dir + '/*/*.bmp'))
 
     labels = np.array([path.split('/')[2] for path in file_paths], np.float32)
@@ -14,8 +13,11 @@ def getDataset(dataset_dir: str):
     
     return file_paths, labels
 
-def trainTestSplit(file_paths: np.array, labels: np.array):
-    splitter = StratifiedShuffleSplit(n_splits=1, train_size=0.6, test_size=0.4, random_state=42)
+def stratifiedSortedSplit(file_paths: np.array, labels: np.array, 
+                    train_size: float, test_size: float, random_state: int):
+    """Splits image paths and labels equally for each class, then sorts them"""
+    splitter = StratifiedShuffleSplit(n_splits=1, 
+                                      train_size=train_size, test_size=test_size, random_state=random_state)
     train_indices, test_indices = next(splitter.split(file_paths, labels))
     
     files_train, labels_train = file_paths[train_indices], labels[train_indices]

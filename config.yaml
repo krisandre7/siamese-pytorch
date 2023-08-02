@@ -1,8 +1,13 @@
-dataset_dir: './'
-dataset_name: 'dataset'
 output_path: './reports'
+random_seed: 42
+
+# StratifiedShuffleSplit
+train_size: 0.6 
+test_size: 0.4
 
 # Datasets
+dataset_dir: './'
+dataset_name: 'dataset'
 train_dataset:
   shuffle_pairs: True
   augment: False
@@ -14,11 +19,12 @@ test_dataset:
   final_shape: [320, 280]
   grayscale: False
 
+
 # Dataloader
 train_dataloader:
   batch_size: 8
   drop_last: True
-test_dataloader:
+val_dataloader:
   batch_size: 8
 
 # Model
