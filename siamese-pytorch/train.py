@@ -3,6 +3,7 @@ from siamese import SiameseNetwork, SiameseDataset
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 import torch
+import numpy as np
 from time import time
 import yaml
 import os
@@ -46,6 +47,11 @@ if __name__ == "__main__":
     # Split image paths and labels using Stratified
     files_train, labels_train, files_test, labels_test = utils.stratifiedSortedSplit(
         file_paths, labels, args['train_size'], args['test_size'], args['random_seed'])
+    
+    
+    train_count = np.unique(labels_train, return_counts=True)[1].mean()
+    test_count = np.unique(labels_test, return_counts=True)[1].mean()
+    print(f'Split {train_count} images from each class for train and {test_count} for test')
 
     # Load images into dataset
     train_dataset = SiameseDataset(

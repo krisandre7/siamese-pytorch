@@ -2,8 +2,8 @@ output_path: './reports'
 random_seed: 42
 
 # StratifiedShuffleSplit
-train_size: 0.6 
-test_size: 0.4
+train_size: 0.334
+test_size: 0.666
 
 # Datasets
 dataset_dir: './'
