@@ -6,6 +6,9 @@ import torch
 from time import time
 import yaml
 import os
+import randomname
+import random
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -17,9 +20,16 @@ if __name__ == "__main__":
         args = yaml.safe_load(file)
 
     # Assign a unique folder as training output
-    training_id = f'{time():.0f}'
+    training_id = f'{randomname.get_name()}-{str(random.randint(1,9))}'
+    
     final_path = os.path.join(
         args['output_path'], args['dataset_name'], args['model_name'], training_id)
+    
+    while os.path.isdir(final_path):
+        training_id = f'{randomname.get_name()}-{str(random.randint(1,9))}'
+        final_path = os.path.join(
+        args['output_path'], args['dataset_name'], args['model_name'], training_id)
+    
     os.makedirs(final_path, exist_ok=True)
 
     # Write config to output folder
