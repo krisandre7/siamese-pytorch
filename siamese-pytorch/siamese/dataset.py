@@ -39,9 +39,10 @@ class SiameseDataset(torch.utils.data.IterableDataset):
         if augment:
             # If images are to be augmented, add extra operations for it (first two).
             self.transform = transforms.Compose([
-                transforms.RandomAffine(degrees=20, translate=(
-                    0.2, 0.2), scale=(0.8, 1.2), shear=0.2),
-                transforms.RandomHorizontalFlip(p=0.5),
+                # transforms.RandomAffine(degrees=20, translate=(
+                #     0.2, 0.2), scale=(0.8, 1.2), shear=0.2),
+                # transforms.RandomHorizontalFlip(p=0.5),
+                transforms.TrivialAugmentWide(),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
                                      0.229, 0.224, 0.225]),
