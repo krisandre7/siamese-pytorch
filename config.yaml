@@ -1,3 +1,8 @@
+# Important info
+dataset_name: 'dataset'
+model_name: 'siameseNet18'
+backbone: 'resnet18'
+
 output_path: './reports'
 random_seed: 42
 
@@ -7,7 +12,6 @@ test_size: 0.666
 
 # Datasets
 dataset_dir: './'
-dataset_name: 'dataset'
 train_dataset:
   shuffle_pairs: True
   augment: False
@@ -26,10 +30,6 @@ train_dataloader:
   drop_last: True
 val_dataloader:
   batch_size: 8
-
-# Model
-model_name: 'siameseNet18'
-backbone: 'resnet18'
 
 # Training
 learning_rate: 0.0001

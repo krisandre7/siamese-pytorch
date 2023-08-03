@@ -24,12 +24,12 @@ if __name__ == "__main__":
     training_id = f'{randomname.get_name()}-{str(random.randint(1,9))}'
     
     final_path = os.path.join(
-        args['output_path'], args['dataset_name'], args['model_name'], training_id)
+        args['output_path'], training_id)
     
     while os.path.isdir(final_path):
         training_id = f'{randomname.get_name()}-{str(random.randint(1,9))}'
         final_path = os.path.join(
-        args['output_path'], args['dataset_name'], args['model_name'], training_id)
+        args['output_path'], training_id)
     
     os.makedirs(final_path, exist_ok=True)
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     loss_func = torch.nn.BCELoss()
 
     # Initialize TensorBoard
-    writer = SummaryWriter(os.path.join(final_path, "summary"))
+    writer = SummaryWriter(os.path.join(final_path))
 
     best_val = 10000000000
     for epoch in range(args['epochs']):
