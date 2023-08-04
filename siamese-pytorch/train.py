@@ -4,6 +4,7 @@ from contrastive_loss import ContrastiveLoss
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 import torch
+from torch import nn
 import numpy as np
 import yaml
 import os
@@ -13,18 +14,18 @@ import random
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
-def train_loop():
+def train_loop(model: nn.Module, loss_func: nn.Module, optimizer: torch.optim.Optimizer):
     model.train()
 
     losses = []
     correct = 0
     total = 0
 
-    for (img1, img2), y, (class1, class2) in train_dataloader:
+    for img1, img2, y, class1, class2 in train_dataloader:
         img1, img2, y = map(lambda x: x.to(device), [img1, img2, y])
 
-        output = model(img1, img2)
-        loss = loss_func(output, y)
+        output1, output2 = model(img1, img2)
+        loss = loss_func(output1, output2, y)
 
         optimizer.zero_grad()
         loss.backward()
@@ -33,18 +34,15 @@ def train_loop():
         losses.append(loss.item())
 
         correct += utils.similarityCorrect(y,
-                                           output, args['similarity_margin'])
+                                           output1, output2, args['similarity_margin'])
         total += len(y)
 
     train_loss = sum(losses)/len(losses)
     accuracy = (correct / total) * 100
-    writer.add_scalar('train_loss', train_loss, epoch)
-    writer.add_scalar('train_acc', accuracy, epoch)
+    
+    return train_loss, accuracy
 
-    print("\tTraining: Loss={:.2f}\t Accuracy={:.2f}%\t".format(
-        train_loss, accuracy))
-
-def test_loop(best_val):
+def test_loop(model: nn.Module, loss_func: nn.Module, optimizer: torch.optim.Optimizer, best_val: float):
     model.eval()
 
     losses = []
@@ -52,51 +50,24 @@ def test_loop(best_val):
     total = 0
 
     with torch.no_grad():
-        for (img1, img2), y, (class1, class2) in val_dataloader:
+        for img1, img2, y, class1, class2 in val_dataloader:
             img1, img2, y = map(lambda x: x.to(device), [img1, img2, y])
 
-            output = model(img1, img2)
-            loss = loss_func(output, y)
+            image_embed1, image_embed2 = model(img1, img2)
+            loss = loss_func(image_embed1, image_embed2, y)
 
             losses.append(loss.item())
 
             correct += utils.similarityCorrect(y,
-                                               output, args['similarity_margin'])
+                                               image_embed1, image_embed2, args['similarity_margin'])
             total += len(y)
 
     val_loss = sum(losses)/max(1, len(losses))
 
     accuracy = 100 * correct / total
-    writer.add_scalar('val_loss', val_loss, epoch)
-    writer.add_scalar('val_acc', accuracy, epoch)
-    print("\tValidation: Loss={:.2f}\t Accuracy={:.2f}%\t".format(
-        val_loss, accuracy))
+    
+    return val_loss, accuracy
     # Evaluation Loop End
-
-    # Update "best.pth" model if val_loss in current epoch is lower than the best validation loss
-    if args['save_best'] and val_loss < best_val:
-        best_val = val_loss
-        torch.save(
-            {
-                "epoch": epoch + 1,
-                "model_state_dict": model.state_dict(),
-                "backbone": args['backbone'],
-                "optimizer_state_dict": optimizer.state_dict()
-            },
-            os.path.join(final_path, "best.pt")
-        )
-
-    # Save model based on the frequency defined by "args['save_after']"
-    if args['save_after'] != 0 and (epoch + 1) % args['save_after'] == 0:
-        torch.save(
-            {
-                "epoch": epoch + 1,
-                "model_state_dict": model.state_dict(),
-                "backbone": args['backbone'],
-                "optimizer_state_dict": optimizer.state_dict()
-            },
-            os.path.join(final_path, "epoch_{}.pt".format(epoch + 1))
-        )
 
 
 # baseado em https://github.com/sohaib023/siamese-pytorch
@@ -142,15 +113,15 @@ if __name__ == "__main__":
 
     # Load images into dataset
     train_dataset = SiameseDataset(
-        files_train, labels_train, **args['train_dataset'])
+        files_train, labels_train, final_shape=args['final_shape'], **args['train_dataset'])
     val_dataset = SiameseDataset(
-        files_test, labels_test, **args['test_dataset'])
+        files_test, labels_test, final_shape=args['final_shape'], **args['test_dataset'])
 
     train_dataloader = DataLoader(train_dataset, **args['train_dataloader'])
     val_dataloader = DataLoader(val_dataset, **args['val_dataloader'])
 
     # Instantiate model and move it to GPU
-    model = SiameseNetwork(backbone=args['backbone'])
+    model = SiameseNetwork(args['final_shape'][0], args['final_shape'][1], backbone=args['backbone'])
     model.to(device)
 
     # Initialize optimizer and loss function
@@ -164,5 +135,40 @@ if __name__ == "__main__":
     for epoch in range(args['epochs']):
         print("[{} / {}]".format(epoch+1, args['epochs']))
 
-        train_loop()
-        test_loop(best_val)
+        train_loss, accuracy = train_loop(model, loss_func, optimizer)
+        writer.add_scalar('train_loss', train_loss, epoch)
+        writer.add_scalar('train_acc', accuracy, epoch)
+
+        print("\tTraining: Loss={:.2f}\t Accuracy={:.2f}%\t".format(
+            train_loss, accuracy))
+        val_loss, accuracy = test_loop(model, loss_func, optimizer, best_val)
+        
+        writer.add_scalar('val_loss', val_loss, epoch)
+        writer.add_scalar('val_acc', accuracy, epoch)
+        print("\tValidation: Loss={:.2f}\t Accuracy={:.2f}%\t".format(
+            val_loss, accuracy))
+        
+        # Update "best.pth" model if val_loss in current epoch is lower than the best validation loss
+        if args['save_best'] and val_loss < best_val:
+            best_val = val_loss
+            torch.save(
+                {
+                    "epoch": epoch + 1,
+                    "model_state_dict": model.state_dict(),
+                    "backbone": args['backbone'],
+                    "optimizer_state_dict": optimizer.state_dict()
+                },
+                os.path.join(final_path, "best.pt")
+            )
+
+        # Save model based on the frequency defined by "args['save_after']"
+        if args['save_after'] != 0 and (epoch + 1) % args['save_after'] == 0:
+            torch.save(
+                {
+                    "epoch": epoch + 1,
+                    "model_state_dict": model.state_dict(),
+                    "backbone": args['backbone'],
+                    "optimizer_state_dict": optimizer.state_dict()
+                },
+                os.path.join(final_path, "epoch_{}.pt".format(epoch + 1))
+            )

@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torchvision import models
 
 class SiameseNetwork(nn.Module):
-    def __init__(self, backbone="resnet18"):
+    def __init__(self, img_height, img_width, backbone="resnet18"):
         '''
         Creates a siamese network with a network from torchvision.models as backbone.
 
@@ -13,30 +13,55 @@ class SiameseNetwork(nn.Module):
                     backbone (str): Options of the backbone networks can be found at https://pytorch.org/vision/stable/models.html
         '''
 
-        super().__init__()
+        super(SiameseNetwork, self).__init__()
+        
+        self.img_height = img_height
+        self.img_width = img_width
 
-        if backbone not in models.__dict__:
-            raise Exception("No model named {} exists in torchvision.models.".format(backbone))
+        if backbone in models.__dict__:
+            # Create a backbone network from the pretrained models provided in torchvision.models 
+            self.backbone = models.__dict__[backbone](pretrained=True, progress=True)
+        else: 
+            print(f"No model named {backbone} exists in torchvision.models.")
+            self.backbone = nn.Sequential(
+                nn.Conv2d(1, 96, kernel_size=11,stride=4),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(3, stride=2),
+                
+                nn.Conv2d(96, 256, kernel_size=5, stride=1),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(2, stride=2),
 
-        # Create a backbone network from the pretrained models provided in torchvision.models 
-        self.backbone = models.__dict__[backbone](pretrained=True, progress=True)
+                nn.Conv2d(256, 384, kernel_size=3,stride=1),
+                nn.ReLU(inplace=True)
+            )
 
         # Get the number of features that are outputted by the last layer of backbone network.
-        out_features = list(self.backbone.modules())[-1].out_features
+        # out_features = list(self.backbone.modules())[-1].out_features
+        out_features = self._get_out_features()
+        
         
         # Create an MLP (multi-layer perceptron) as the classification head. 
         # Classifies if provided combined feature vector of the 2 images represent same player or different.
         self.cls_head = nn.Sequential(
-            nn.Dropout(p=0.5),
-            nn.Linear(out_features, 512),
+            nn.Linear(out_features, 1024),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
             
-            nn.Linear(512, 64),
+            nn.Linear(1024, 256),
             nn.ReLU(inplace=True),
-            nn.Linear(64, 8),
-            nn.ReLU(inplace=True)
+
+            nn.Linear(256,2)
         )
+        
+    def _get_out_features(self):
+        # Calculate the output shape of the last convolutional layer
+        dummy_input = torch.zeros(1, 1, self.img_height, self.img_width)
+        with torch.no_grad():
+            dummy_output = self.backbone(dummy_input)
+        _, channels, height, width = dummy_output.shape
+
+        # Calculate the input size for the fully connected layers
+        return channels * height * width
 
     def forward(self, image1, image2):
         '''
@@ -57,11 +82,12 @@ class SiameseNetwork(nn.Module):
         image_embed2 = self.backbone(image2)
         
         # Pass both images through a perceptron to generate embeds
+        image_embed1 = image_embed1.view(image_embed1.size()[0], -1)
+        image_embed2 = image_embed2.view(image_embed2.size()[0], -1)
         image_embed1 = self.cls_head(image_embed1)
         image_embed2 = self.cls_head(image_embed2)
         
-        similarity = F.pairwise_distance(image_embed1, image_embed2, p=2, keepdim=True)
-        return similarity
+        return image_embed1, image_embed2
         
         # Multiply (element-wise) the feature vectors of the two images together, 
         # to generate a combined feature vector representing the similarity between the two.

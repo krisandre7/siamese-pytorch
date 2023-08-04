@@ -1,7 +1,7 @@
 # Important info
 dataset_name: 'dataset'
 model_name: 'siameseNet18'
-backbone: 'resnet18'
+backbone: 'none'
 
 output_path: './reports'
 random_seed: 42
@@ -13,17 +13,16 @@ test_size: 0.334
 # test_size: 0.666
 
 # Datasets
+final_shape: [280, 320]
 dataset_dir: './'
 train_dataset:
-  shuffle_pairs: True
   augment: False
-  final_shape: [320, 280]
-  grayscale: False
+  grayscale: True
+  shuffle: True
 test_dataset:
-  shuffle_pairs: False
   augment: False
-  final_shape: [320, 280]
-  grayscale: False
+  grayscale: True
+  shuffle: False
 
 
 # Dataloader
@@ -39,6 +38,6 @@ loss: 'contrastive'
 
 # Training
 learning_rate: 0.001
-epochs: 500
+epochs: 1000
 save_best: True
 save_after: 25
