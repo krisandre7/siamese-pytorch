@@ -23,47 +23,50 @@ class SiameseNetwork(nn.Module):
 
         # Get the number of features that are outputted by the last layer of backbone network.
         out_features = list(self.backbone.modules())[-1].out_features
-
+        
         # Create an MLP (multi-layer perceptron) as the classification head. 
         # Classifies if provided combined feature vector of the 2 images represent same player or different.
         self.cls_head = nn.Sequential(
             nn.Dropout(p=0.5),
             nn.Linear(out_features, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
-
+            nn.ReLU(inplace=True),
             nn.Dropout(p=0.5),
+            
             nn.Linear(512, 64),
-            nn.BatchNorm1d(64),
-            nn.Sigmoid(),
-            nn.Dropout(p=0.5),
-
-            nn.Linear(64, 1),
-            nn.Sigmoid(),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 8),
+            nn.ReLU(inplace=True)
         )
 
-    def forward(self, img1, img2):
+    def forward(self, image1, image2):
         '''
         Returns the similarity value between two images.
 
             Parameters:
-                    img1 (torch.Tensor): shape=[b, 3, 224, 224]
-                    img2 (torch.Tensor): shape=[b, 3, 224, 224]
+                    image1 (torch.Tensor)
+                    image2 (torch.Tensor)
 
-            where b = batch size
 
             Returns:
-                    output (torch.Tensor): shape=[b, 1], Similarity of each pair of images
+                    image_embed1 (torch.Tensor), vector representation of image1
+                    image_embed2 (torch.Tensor), vector representation of image2
         '''
 
         # Pass the both images through the backbone network to get their seperate feature vectors
-        feat1 = self.backbone(img1)
-        feat2 = self.backbone(img2)
+        image_embed1 = self.backbone(image1)
+        image_embed2 = self.backbone(image2)
+        
+        # Pass both images through a perceptron to generate embeds
+        image_embed1 = self.cls_head(image_embed1)
+        image_embed2 = self.cls_head(image_embed2)
+        
+        similarity = F.pairwise_distance(image_embed1, image_embed2, p=2, keepdim=True)
+        return similarity
         
         # Multiply (element-wise) the feature vectors of the two images together, 
         # to generate a combined feature vector representing the similarity between the two.
-        combined_features = feat1 * feat2
+        # combined_features = image_embed1 * image_embed2
 
         # Pass the combined feature vector through classification head to get similarity value in the range of 0 to 1.
-        output = self.cls_head(combined_features)
-        return output
+        # output = self.cls_head(combined_features)
+        # return output

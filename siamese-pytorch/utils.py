@@ -8,7 +8,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 def getDataset(dataset_dir: str):
     file_paths = np.sort(glob.glob(dataset_dir + '/*/*.bmp'))
 
-    labels = np.array([path.split('/')[2] for path in file_paths], np.float32)
+    labels = np.array([path.split('/')[3] for path in file_paths], np.float32)
     labels -= 1
     
     return file_paths, labels
@@ -35,3 +35,25 @@ def stratifiedSortedSplit(file_paths: np.array, labels: np.array,
     labels_test: Tensor = torch.from_numpy(labels_test)
     
     return files_train, labels_train, files_test, labels_test
+
+def similarityCorrect(y: Tensor, y_pred: Tensor, similarity_margin: float):
+    """Calculate correct prediction for similarity scores
+
+    Args:
+        y (Tensor): ground truth labels
+        y_pred (Tensor): predicted labels
+        similarity_margin (float): threshold for measuring similarity predictions
+
+    Returns:
+        correct: number of correct label predictions
+    """
+    ones_index = torch.where(y == 1)[0]
+    zeros_index = torch.where(y == 0)[0]
+    
+    true_positives = torch.count_nonzero(y_pred[ones_index] < similarity_margin).item()
+    true_negatives = torch.count_nonzero(y_pred[zeros_index] > similarity_margin).item()
+    # false_positives = torch.count_nonzero(y_pred[zeros_index] < similarity_margin).item()
+    # false_negatives = torch.count_nonzero(y_pred[ones_index] > similarity_margin).item()
+    
+    # print(f'TP:{true_positives}, FP: {false_positives},\n TN: {true_negatives}, FN: {false_negatives}')
+    return true_positives + true_negatives

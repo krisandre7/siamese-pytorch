@@ -7,8 +7,10 @@ output_path: './reports'
 random_seed: 42
 
 # StratifiedShuffleSplit
-train_size: 0.334
-test_size: 0.666
+train_size: 0.666
+test_size: 0.334
+# train_size: 0.334
+# test_size: 0.666
 
 # Datasets
 dataset_dir: './'
@@ -26,13 +28,17 @@ test_dataset:
 
 # Dataloader
 train_dataloader:
-  batch_size: 8
+  batch_size: 64
   drop_last: True
 val_dataloader:
-  batch_size: 8
+  batch_size: 64
+
+# loss
+similarity_margin: 2.0
+loss: 'contrastive'
 
 # Training
-learning_rate: 0.0001
+learning_rate: 0.001
 epochs: 500
 save_best: True
-save_after: 0
+save_after: 25

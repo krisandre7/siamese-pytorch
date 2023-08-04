@@ -16,20 +16,7 @@ from torchvision import transforms
 class SiameseDataset(torch.utils.data.IterableDataset):
     def __init__(self, image_paths: np.array, image_classes: Tensor, 
                  shuffle_pairs: bool, augment: bool, final_shape: tuple, grayscale: bool):
-        '''
-        Create an iterable dataset from a directory containing sub-directories of 
-        entities with their images contained inside each sub-directory.
 
-            Parameters:
-                    path (str):                 Path to directory containing the dataset.
-                    shuffle_pairs (boolean):    Pass True when training, False otherwise. When set to false, the image pair generation will be deterministic
-                    augment (boolean):          When True, images will be augmented using a standard set of transformations.
-
-            where b = batch size
-
-            Returns:
-                    output (torch.Tensor): shape=[b, 1], Similarity of each pair of images
-        '''
         self.image_paths = image_paths
         self.image_classes = image_classes
 
