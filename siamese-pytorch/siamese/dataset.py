@@ -1,15 +1,10 @@
-import os
-import glob
 import time
 
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
 
 import torch
 from torch import Tensor
-import torch.nn as nn
-import torch.nn.functional as F
 from torchvision import transforms
 import utils
 
@@ -34,7 +29,7 @@ class SiameseDataset(torch.utils.data.IterableDataset):
                 transforms.ToTensor(),
                 # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
                 #                      0.229, 0.224, 0.225]),
-                transforms.Resize(final_shape, antialias=None)
+                transforms.Resize(final_shape[1:], antialias=None)
             ])
         else:
             # If no augmentation is needed then apply only the normalization and resizing operations.
@@ -42,7 +37,7 @@ class SiameseDataset(torch.utils.data.IterableDataset):
                 transforms.ToTensor(),
                 # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
                 #                      0.229, 0.224, 0.225]),
-                transforms.Resize(final_shape, antialias=None)
+                transforms.Resize(final_shape[1:], antialias=None)
             ])
 
         self.images_dict = {
@@ -97,7 +92,7 @@ class SiameseDataset(torch.utils.data.IterableDataset):
 
             image1 = self.transform(image1).float()
             image2 = self.transform(image2).float()
-
+            
             yield image1, image2, torch.FloatTensor([label]), class1, class2
 
     def __len__(self):

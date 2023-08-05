@@ -1,11 +1,10 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from torchvision import models
 
 class SiameseNetwork(nn.Module):
-    def __init__(self, img_height, img_width, backbone="resnet18"):
+    def __init__(self, img_shape, backbone="resnet18"):
         '''
         Creates a siamese network with a network from torchvision.models as backbone.
 
@@ -15,8 +14,9 @@ class SiameseNetwork(nn.Module):
 
         super(SiameseNetwork, self).__init__()
         
-        self.img_height = img_height
-        self.img_width = img_width
+        self.img_channels = img_shape[0]
+        self.img_height = img_shape[1]
+        self.img_width = img_shape[2]
 
         if backbone in models.__dict__:
             # Create a backbone network from the pretrained models provided in torchvision.models 
@@ -55,9 +55,10 @@ class SiameseNetwork(nn.Module):
         
     def _get_out_features(self):
         # Calculate the output shape of the last convolutional layer
-        dummy_input = torch.zeros(1, 1, self.img_height, self.img_width)
+        dummy_input = torch.zeros(1, self.img_channels, self.img_height, self.img_width)
         with torch.no_grad():
             dummy_output = self.backbone(dummy_input)
+            
         _, channels, height, width = dummy_output.shape
 
         # Calculate the input size for the fully connected layers

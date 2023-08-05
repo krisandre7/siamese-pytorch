@@ -1,7 +1,6 @@
 import os
 import argparse
 
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
         '--checkpoint_name',
         type=str,
         help="Path of model checkpoint to be used for inference.",
-        default='best'
+        default='best.pt'
     )
 
     args = parser.parse_args()

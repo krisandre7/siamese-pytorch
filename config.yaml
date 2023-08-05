@@ -13,7 +13,7 @@ test_size: 0.334
 # test_size: 0.666
 
 # Datasets
-final_shape: [280, 320]
+final_shape: [1, 280, 320]
 dataset_dir: './'
 train_dataset:
   augment: False

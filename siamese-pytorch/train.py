@@ -42,7 +42,7 @@ def train_loop(model: nn.Module, loss_func: nn.Module, optimizer: torch.optim.Op
     
     return train_loss, accuracy
 
-def test_loop(model: nn.Module, loss_func: nn.Module, optimizer: torch.optim.Optimizer, best_val: float):
+def test_loop(model: nn.Module, loss_func: nn.Module):
     model.eval()
 
     losses = []
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     val_dataloader = DataLoader(val_dataset, **args['val_dataloader'])
 
     # Instantiate model and move it to GPU
-    model = SiameseNetwork(args['final_shape'][0], args['final_shape'][1], backbone=args['backbone'])
+    model = SiameseNetwork(args['final_shape'], backbone=args['backbone'])
     model.to(device)
 
     # Initialize optimizer and loss function
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
         print("\tTraining: Loss={:.2f}\t Accuracy={:.2f}%\t".format(
             train_loss, accuracy))
-        val_loss, accuracy = test_loop(model, loss_func, optimizer, best_val)
+        val_loss, accuracy = test_loop(model, loss_func)
         
         writer.add_scalar('val_loss', val_loss, epoch)
         writer.add_scalar('val_acc', accuracy, epoch)
